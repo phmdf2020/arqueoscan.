@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17231f">
+  <title>ArqueoScan AI</title>
+  <style>
+    :root { color-scheme: dark; --bg:#101815; --panel:#19241f; --muted:#aab8af; --accent:#b9d7a8; --line:#34443a; }
+    * { box-sizing:border-box }
+    body { margin:0; font-family:system-ui,-apple-system,Segoe UI,sans-serif; background:linear-gradient(160deg,#17231f,#0d1210); color:#f4f7f3; min-height:100vh; }
+    main { width:min(760px,100%); margin:auto; padding:24px 16px 40px; }
+    header { margin-bottom:20px }
+    .eyebrow { color:var(--accent); text-transform:uppercase; letter-spacing:.16em; font-size:.72rem; font-weight:700 }
+    h1 { margin:6px 0; font-size:clamp(2rem,8vw,3rem); letter-spacing:-.04em }
+    .sub { color:var(--muted); margin:0; line-height:1.5 }
+    .panel { background:rgba(25,36,31,.96); border:1px solid var(--line); border-radius:22px; padding:16px; margin-top:16px; box-shadow:0 14px 35px #0003 }
+    .camera { background:#080b09; border-radius:16px; overflow:hidden; min-height:220px; display:grid; place-items:center; position:relative }
+    video { display:block; width:100%; max-height: min(62vh,520px); object-fit:cover; transform:scaleX(-1); }
+    .camera-placeholder { padding:36px 18px; text-align:center; color:var(--muted) }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px }
+    button { border:0; border-radius:12px; padding:12px 16px; font-weight:700; font-size:.95rem; cursor:pointer; background:var(--accent); color:#142018 }
+    button.secondary { background:#2a3931; color:#f3f7f2; border:1px solid #46564b }
+    button:disabled { opacity:.45; cursor:not-allowed }
+    .status { color:var(--muted); font-size:.9rem; min-height:1.4em; margin:12px 0 0 }
+    .result-top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap }
+    .tag { color:#142018; background:var(--accent); border-radius:999px; padding:5px 10px; font-size:.75rem; font-weight:800 }
+    h2 { margin:0; font-size:1.25rem }
+    .result-name { font-size:clamp(1.7rem,7vw,2.5rem); font-weight:800; margin:12px 0 4px; }
+    .confidence { color:var(--muted); font-size:.9rem }
+    .bar { height:9px; border-radius:20px; background:#34443a; overflow:hidden; margin:12px 0 16px }
+    .bar > div { height:100%; width:0; background:var(--accent); transition:width .2s }
+    .explain { line-height:1.55; color:#dce5de; margin:8px 0 0 }
+    .small { color:var(--muted); font-size:.82rem; line-height:1.5 }
+    .classes { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px }
+    .class-item { border:1px solid var(--line); border-radius:12px; padding:10px; color:#e6eee8; font-size:.9rem }
+    .class-item strong { display:block; font-size:.82rem; margin-bottom:4px }
+    footer { color:var(--muted); font-size:.78rem; line-height:1.5; padding:18px 4px }
+    @media (min-width:600px) { main { padding-top:36px } .panel { padding:20px } }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="eyebrow">Reconhecimento visual experimental</div>
+    <h1>ArqueoScan AI</h1>
+    <p class="sub">Aponte a câmera para um dos desenhos da placa e veja qual classe o modelo treinado identificou.</p>
+  </header>
+
+  <section class="panel">
+    <div class="result-top"><h2>Leitura pela câmera</h2><span class="tag">MODELO TEACHABLE MACHINE</span></div>
+    <div class="camera" style="margin-top:14px">
+      <div class="camera-placeholder" id="placeholder">A câmera aparecerá aqui quando você iniciar a leitura.</div>
+      <video id="video" autoplay playsinline muted hidden></video>
+    </div>
+    <div class="actions">
+      <button id="start">Iniciar câmera</button>
+      <button id="stop" class="secondary" disabled>Parar câmera</button>
+      <button id="speak" class="secondary" disabled>Ouvir resultado</button>
+    </div>
+    <p class="status" id="status" role="status">Aguardando. Permita o acesso à câmera quando o navegador perguntar.</p>
+  </section>
+
+  <section class="panel" aria-live="polite">
+    <div class="result-top"><h2>Resultado da identificação</h2><span class="tag" id="stateTag">AGUARDANDO</span></div>
+    <div class="result-name" id="resultName">Nenhum símbolo identificado</div>
+    <div class="confidence" id="confidence">A confiança aparecerá aqui.</div>
+    <div class="bar"><div id="barFill"></div></div>
+    <p class="explain" id="explanation">Quando a câmera reconhecer uma classe, mostraremos aqui uma explicação cadastrada. O reconhecimento visual não comprova, por si só, a origem ou o significado histórico do desenho.</p>
+  </section>
+
+  <section class="panel">
+    <h2>Classes ensinadas ao modelo</h2>
+    <div class="classes">
+      <div class="class-item"><strong>Classe 1</strong>Estrela</div>
+      <div class="class-item"><strong>Classe 2</strong>Água</div>
+      <div class="class-item"><strong>Classe 3</strong>Vida</div>
+      <div class="class-item"><strong>Classe 4</strong>Ser humano</div>
+      <div class="class-item"><strong>Classe 5</strong>Planta</div>
+      <div class="class-item"><strong>Classe 6</strong>Sol</div>
+    </div>
+    <p class="small">As classes são os rótulos usados no seu treinamento. A ordem e os nomes efetivos são lidos diretamente dos metadados do modelo.</p>
+  </section>
+
+  <footer>
+    Projeto demonstrativo. O sistema compara a imagem da câmera com os exemplos usados no treinamento. Para resultados melhores, treine cada classe com várias fotos, fundos e iluminações. Não trate a porcentagem como certeza científica nem como interpretação arqueológica.
+  </footer>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.3/dist/teachablemachine-image.min.js"></script>
+<script>
+(() => {
+  const MODEL_URL = "https://teachablemachine.withgoogle.com/models/taaR2TbhI/";
+  const video = document.getElementById("video");
+  const placeholder = document.getElementById("placeholder");
+  const startBtn = document.getElementById("start");
+  const stopBtn = document.getElementById("stop");
+  const speakBtn = document.getElementById("speak");
+  const statusEl = document.getElementById("status");
+  const nameEl = document.getElementById("resultName");
+  const confidenceEl = document.getElementById("confidence");
+  const explanationEl = document.getElementById("explanation");
+  const barFill = document.getElementById("barFill");
+  const stateTag = document.getElementById("stateTag");
+
+  // Textos neutros: substitua por informações históricas verificadas.
+  const descriptions = {
+    "Estrela": "O modelo classificou a imagem como Estrela. O significado histórico deste desenho ainda precisa ser pesquisado e confirmado.",
+    "Água": "O modelo classificou a imagem como Água. O significado histórico deste desenho ainda precisa ser pesquisado e confirmado.",
+    "Vida": "O modelo classificou a imagem como Vida. O significado histórico deste desenho ainda precisa ser pesquisado e confirmado.",
+    "Ser humano": "O modelo classificou a imagem como Ser humano. O significado histórico deste desenho ainda precisa ser pesquisado e confirmado.",
+    "Planta": "O modelo classificou a imagem como Planta. O significado histórico deste desenho ainda precisa ser pesquisado e confirmado.",
+    "Sol": "O modelo classificou a imagem como Sol. O significado histórico deste desenho ainda precisa ser pesquisado e confirmado."
+  };
+
+  let model = null;
+  let stream = null;
+  let running = false;
+  let lastSpoken = "";
+
+  async function startCamera() {
+    startBtn.disabled = true;
+    statusEl.textContent = "Carregando o modelo de inteligência artificial...";
+    try {
+      if (!model) {
+        model = await tmImage.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
+      }
+      statusEl.textContent = "Solicitando acesso à câmera...";
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: { ideal: "environment" }, width: { ideal: 720 }, height: { ideal: 720 } }
+      });
+      video.srcObject = stream;
+      video.hidden = false;
+      placeholder.hidden = true;
+      await video.play();
+      running = true;
+      stopBtn.disabled = false;
+      speakBtn.disabled = false;
+      statusEl.textContent = "Câmera ativa. Aponte para um símbolo e mantenha-o enquadrado.";
+      predictLoop();
+    } catch (error) {
+      console.error(error);
+      statusEl.textContent = "Não foi possível iniciar. Verifique a permissão da câmera e abra o site em HTTPS (ou em localhost).";
+      startBtn.disabled = false;
+    }
+  }
+
+  function stopCamera() {
+    running = false;
+    if (stream) stream.getTracks().forEach(track => track.stop());
+    stream = null;
+    video.srcObject = null;
+    video.hidden = true;
+    placeholder.hidden = false;
+    stopBtn.disabled = true;
+    startBtn.disabled = false;
+    speakBtn.disabled = true;
+    statusEl.textContent = "Câmera desligada.";
+    stateTag.textContent = "PAUSADO";
+  }
+
+  async function predictLoop() {
+    if (!running) return;
+    try {
+      const predictions = await model.predict(video);
+      predictions.sort((a, b) => b.probability - a.probability);
+      const best = predictions[0];
+      const percent = Math.round(best.probability * 100);
+      const label = best.className.trim();
+      const known = descriptions[label];
+
+      if (best.probability < 0.60) {
+        nameEl.textContent = "Símbolo não reconhecido com confiança";
+        confidenceEl.textContent = "Maior correspondência: " + label + " (" + percent + "%)";
+        explanationEl.textContent = "Tente aproximar a câmera, melhorar a iluminação e deixar apenas um símbolo no enquadramento.";
+        stateTag.textContent = "BAIXA CONFIANÇA";
+      } else {
+        nameEl.textContent = label;
+        confidenceEl.textContent = "Confiança estimada pelo modelo: " + percent + "%";
+        explanationEl.textContent = known || "Classe identificada pelo modelo. Ainda não há uma explicação cadastrada para este rótulo.";
+        stateTag.textContent = "IDENTIFICAÇÃO";
+      }
+      barFill.style.width = percent + "%";
+      lastSpoken = nameEl.textContent + ". " + explanationEl.textContent;
+    } catch (error) {
+      console.error(error);
+      statusEl.textContent = "Ocorreu um erro durante a análise da imagem.";
+    }
+    if (running) requestAnimationFrame(predictLoop);
+  }
+
+  function speakResult() {
+    if (!lastSpoken || !("speechSynthesis" in window)) {
+      statusEl.textContent = "A leitura em voz alta não está disponível neste navegador.";
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(lastSpoken);
+    utterance.lang = "pt-BR";
+    window.speechSynthesis.speak(utterance);
+  }
+
+  startBtn.addEventListener("click", startCamera);
+  stopBtn.addEventListener("click", stopCamera);
+  speakBtn.addEventListener("click", speakResult);
+  window.addEventListener("pagehide", stopCamera);
+})();
+</script>
+</body>
+</html>
